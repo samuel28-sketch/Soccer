@@ -17,10 +17,11 @@ public class Player {
     boolean iFrameCooldown;
     int iFrameCount;
     int maxspeed;
+    int power;
 
     //randomNumber = (int) (math.random()*6+1)
 
-    public Player(int maxspeed, int widthInput, int heightInput, int xposInput, int yposInput) {
+    public Player(int maxspeed, int power, int widthInput, int heightInput, int xposInput, int yposInput ) {
         hitbox = new Rectangle(xposInput, yposInput, widthInput, heightInput);
         width = widthInput; //set variables
         height = heightInput;
@@ -29,6 +30,7 @@ public class Player {
         dx = 0;
         dy = 0;
         this.maxspeed = maxspeed;
+        this.power = power;
     }
 
     public void move() {

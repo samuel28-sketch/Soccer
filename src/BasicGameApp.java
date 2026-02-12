@@ -59,7 +59,7 @@ public class BasicGameApp implements Runnable, MouseListener {
 
         //variable and objects
         //create (construct) the objects needed for the game
-        player = new Player(5,50,50,200,300); //creates (constructs) the objects needed for the game
+        player = new Player(5, 5,50,50,200,300); //creates (constructs) the objects needed for the game
 
         npc1 = new Enemy(10, 3,50,50,800,300);
         npc2 = new Enemy(10,3,50,50,800,500);
@@ -105,15 +105,13 @@ public class BasicGameApp implements Runnable, MouseListener {
         scoreboard.bounce();
         player.move(); //player constantly moves by dx and dy which are set to 0, decelerate to 0, and increase w the keyboard inputs bellow, this code bellow makes it accelerate while a key is being held
 
-        if(Math.abs(player.dx)<.5) player.dx=0;
-        if(Math.abs(player.dy)<.5) player.dy=0;
 
         if (!ball.gamestart&&ball.playerPossession){
             ball.dx = player.dx;
             ball.dy = player.dy;
         }
         if (ball.playerPossession||ball.gamestart) {
-         ////       npcDefensivePath(); //makes the enemy chase the player only while its alive
+                npcDefensivePath(); //makes the enemy chase the player only while its alive
              //   npcSprint();
                // System.out.println("defensive path");
         }
@@ -144,6 +142,8 @@ public class BasicGameApp implements Runnable, MouseListener {
             moving = true;
         }
         if (moving == false){ //friction
+            if(Math.abs(player.dx)<1) player.dx=0;
+            if(Math.abs(player.dy)<1) player.dy=0;
             if (player.dx>0){
                 player.dx-=.8;
             }
@@ -313,6 +313,7 @@ public class BasicGameApp implements Runnable, MouseListener {
             player.isTackled = false;
             ball.dx = 0;
             ball.dy = 0;
+            ball.kickPower=1;
             player.xpos = 50;
             player.ypos = 345;
             npc1.xpos = 950;
@@ -480,13 +481,13 @@ public class BasicGameApp implements Runnable, MouseListener {
             }
 
         }
-        System.out.println(ball.dx+" "+ball.dy+" ");
+        System.out.println(player.dx+" "+player.dy+" ");
     }
 
 
     public void ballKick(){ //IDEA: give diff players diff kick powers, and then add that would prob need a similar thing with the for(enemy enemes: enemies) things but well see
         ball.playerPossession = false;
-        player.iframeSet(ball,200);
+        //player.iframeSet(ball,100); //currently doesnt work aka it doesnt do anything
         player.iFrames=true;
       //  ball.gamestart = true;
         double kickDistanceX= mouseX - ball.xpos;
@@ -532,6 +533,7 @@ System.out.println(ball.kickPower);
         mouseHeld = false;
         if (!ball.kicked&&ball.playerPossession) {
             ballKick();
+            ball.kickPower+=player.power;
             ball.kicked = true; //when the ball is kicked only them use kickpwoer
         }
 
