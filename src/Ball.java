@@ -1,17 +1,23 @@
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 
 public class Ball {
     Image dribblingimage;
-    int xpos;
-    int ypos;
+    double xpos;
+    double ypos;
     int width;
     int height;
     double dx;
     double dy;
     Rectangle hitbox;
     boolean playerPossession;
+    boolean npcPossession;
     boolean gamestart;
     char ballDirection;
+    double kickPower;
+    boolean kicked;
+    double kickedDX;
+    double kickedDY;
 
     //need a like direction variable either booleans or a char maybe
     //maybe need a like possestion boolean, if player has ball or smth
@@ -22,6 +28,8 @@ public class Ball {
         this.xpos = xpos;
         this.ypos=ypos;
         this.playerPossession = playerPossession;
+        this.kickPower = 1;
+
         hitbox = new Rectangle(xpos, ypos, width, height);
         boolean gamestart = true;
     }
@@ -36,8 +44,14 @@ public class Ball {
     }
 
     public void move(){
-        xpos += dx;
-        ypos += dy;
+        if (kicked&&!playerPossession&&!npcPossession) {
+            xpos += kickedDX * kickPower;
+            ypos += kickedDY * kickPower;
+        }
+        else {
+            xpos += dx;
+            ypos += dy;
+        }
         if (xpos>1000){ //wraps the player to the left side if it goes over the right side of teh screen
             xpos = 0;
         }
@@ -50,7 +64,15 @@ public class Ball {
         else if (ypos<0){//wraps the player vertically across the screen
             ypos=700;
         }
-        hitbox = new Rectangle(xpos, ypos, width, height);
+        hitbox = new Rectangle((int)xpos, (int)ypos, width, height);
+
+    }
+
+    public void reset(){
+        dx=0;
+        dy=0;
+        kickedDY=0;
+        kickedDX=0;
     }
 
 }

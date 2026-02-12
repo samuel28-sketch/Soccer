@@ -3,9 +3,14 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.image.BufferStrategy;
+import java.util.ArrayList;
+import java.util.Set;
+
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-public class BasicGameApp implements Runnable {
+public class BasicGameApp implements Runnable, MouseListener {
 
     //Sets the width and height of the program window
     final int WIDTH = 1000;
@@ -21,6 +26,8 @@ public class BasicGameApp implements Runnable {
     Goal leftGoal;
     Goal rightGoal;
     Enemy npc1;
+    Enemy npc2;
+    Enemy npc3;
     Ball ball;
     Image background;
     double distance;
@@ -30,6 +37,15 @@ public class BasicGameApp implements Runnable {
     int scorePlayer = 0;
     int scoreOpponent = 0;
     Text scoreboard;
+    int mouseX;
+    int mouseY;
+    double kickPower;
+    boolean mouseHeld;
+    boolean kicked;
+
+    ArrayList<Enemy> enemies=new ArrayList<>();
+    ArrayList<Teammate> teammates=new ArrayList<>();
+
 
     KeyInput keyInput;
 
@@ -44,7 +60,15 @@ public class BasicGameApp implements Runnable {
         //variable and objects
         //create (construct) the objects needed for the game
         player = new Player(5,50,50,200,300); //creates (constructs) the objects needed for the game
+
         npc1 = new Enemy(10, 3,50,50,800,300);
+        npc2 = new Enemy(10,3,50,50,800,500);
+        npc3 = new Enemy(10,3,50,50,800,500);
+
+        enemies.add(npc1);
+        enemies.add(npc2);
+        enemies.add(npc3);
+
         ball = new Ball(25,25,255,355,true);
         leftGoal = new Goal(50,90,0,315);
         rightGoal = new Goal(50,90,1000,315);
@@ -53,6 +77,7 @@ public class BasicGameApp implements Runnable {
         Font font = new Font("Comic Sans", Font.PLAIN,28); //creates font object for scoreboard (see text class for credits)
         scoreboard = new Text("score:" + scorePlayer + " : " + scoreOpponent, font,500,100); //creates the scoreboard object
         setUpGraphics();
+        canvas.addMouseListener(this);
 
 
 
@@ -80,18 +105,20 @@ public class BasicGameApp implements Runnable {
         scoreboard.bounce();
         player.move(); //player constantly moves by dx and dy which are set to 0, decelerate to 0, and increase w the keyboard inputs bellow, this code bellow makes it accelerate while a key is being held
 
+        if(Math.abs(player.dx)<.5) player.dx=0;
+        if(Math.abs(player.dy)<.5) player.dy=0;
 
         if (!ball.gamestart&&ball.playerPossession){
             ball.dx = player.dx;
             ball.dy = player.dy;
         }
         if (ball.playerPossession||ball.gamestart) {
-                npcDefensivePath(); //makes the enemy chase the player only while its alive
+         ////       npcDefensivePath(); //makes the enemy chase the player only while its alive
              //   npcSprint();
                // System.out.println("defensive path");
         }
 
-        if (!ball.playerPossession&&!ball.gamestart) /*if (!ball.playerPossession&&!ball.gamestart)*/ {
+        if (!ball.playerPossession&&!ball.gamestart&&ball.npcPossession) /*if (!ball.playerPossession&&!ball.gamestart)*/ {
                 npcOffensivePath();
                 ball.dx = npc1.dx;
                 ball.dy = npc1.dy;
@@ -143,7 +170,7 @@ public class BasicGameApp implements Runnable {
 
         g.drawImage(background,0,0,WIDTH,HEIGHT,null); //draws background
         if (!player.isTackled) { //draws the player alive pic while the player is alive
-            g.drawImage(player.alivePic, player.xpos, player.ypos, player.width, player.height, null);
+            g.drawImage(player.alivePic, (int)player.xpos, (int)player.ypos, player.width, player.height, null);
             if (distance < 150){ //changes the picture or the npc1 enemy while it is close to the player
                 g.drawImage(npc1.HESGETTINGCLOSE, npc1.xpos, npc1.ypos, npc1.width, npc1.height, null);
             }
@@ -153,10 +180,10 @@ public class BasicGameApp implements Runnable {
         }
 
         else {
-            g.drawImage(player.tackledPic, player.xpos, player.ypos, player.width, player.height, null); //draws teh gameover player and npc1 pic while the player is dead
+            g.drawImage(player.tackledPic, (int)player.xpos, (int)player.ypos, player.width, player.height, null); //draws teh gameover player and npc1 pic while the player is dead
             g.drawImage(npc1.tacklingPic, npc1.xpos, npc1.ypos, npc1.width, npc1.height, null);
         }
-        g.drawImage(ball.dribblingimage, ball.xpos, ball.ypos, ball.width, ball.height, null);
+        g.drawImage(ball.dribblingimage, (int)ball.xpos, (int)ball.ypos, ball.width, ball.height, null);
         scoreboard.draw(g); //draws the scoreboard
 
 
@@ -199,13 +226,16 @@ public class BasicGameApp implements Runnable {
         //for the moment we will loop things forever.
         while (true) {
          //   System.out.println(ball.playerPossession + " game start : " + ball.gamestart);
-            playerTackled();
+         ////   System.out.println("player poessesion;"+ball.playerPossession);
+            player.playerTackled(ball);
             moveThings();  //move all the game objects
-            iframeSetPlayer();
-            iframeSetNPC();
+            npc1.iframeSetNPC(ball);
+            player.iframeSet(ball, 40);
             collisionCheck(); //checks collisions for all the hitboxes
             render();  // paint the graphics
+            kick();
             pause(10); // sleep for 10 ms
+            ////System.out.println(player.iFrameCooldown+"fcount:"+player.iFrameCount);
         }
     }
 
@@ -254,7 +284,7 @@ public class BasicGameApp implements Runnable {
 
     public void keyPressed(KeyEvent e){ //makes it accelerate immidieatly when the key is pressed, kinda redundant but its the basic version of what they tell you to do in the tutorial so i kept it in for refernce
         int key = e.getKeyCode();//basically creates an integer variable to store the numerical ID of the key you press
-        if(key==KeyEvent.VK_W){//
+        /*if(key==KeyEvent.VK_W){//
             player.dy-=.5 ;
         }
         if(key==KeyEvent.VK_S){
@@ -265,11 +295,13 @@ public class BasicGameApp implements Runnable {
         }
         if(key ==KeyEvent.VK_D){
             player.dx+=.5 ;
-        }
+        }*/
         if(key==KeyEvent.VK_R){ //if you press 'r' it will reset the player back to being alive for when you die, and also resets the score and player position
-            player.iFrames = true;
+            //player.iFrames = true;
+            //npc1.iFrames = true;
             ball.gamestart = true;
             iFrameCount = 0;
+            npc1.iFrameCount = 0;
             sprintFrameCount = 0;
             tackleFrameCount = 0;
             scorePlayer = 0; //resets score
@@ -277,6 +309,7 @@ public class BasicGameApp implements Runnable {
             ball.xpos = 485;
             ball.ypos = 345;
             ball.playerPossession = false;
+            ball.npcPossession = false;
             player.isTackled = false;
             ball.dx = 0;
             ball.dy = 0;
@@ -312,14 +345,14 @@ public class BasicGameApp implements Runnable {
 
     public void npcDefensivePath(){ //path finding for the npc1
 
-        double ydistance =  ball.ypos - npc1.ypos; //finds the height of the triangle between the npc1 and player
-        double xdistance =  ball.xpos - npc1.xpos; //finds the length (aka base) of the triangle between the npc1 and player
-        double angle = Math.atan2(ydistance, xdistance); //finds the angle of where the the player is to the npc1
+        double npcDistanceY =  ball.ypos - npc1.ypos; //finds the height of the triangle between the npc1 and player
+        double npcDistanceX =  ball.xpos - npc1.xpos; //finds the length (aka base) of the triangle between the npc1 and player
+        double angle = Math.atan2(npcDistanceY, npcDistanceX); //finds the angle of where the the player is to the npc1
         npc1.dx = Math.cos(angle)*npc1.speed; //these 2 lines always move the npc1 through the hypotenuse of said triangle i.e the shortest path
         npc1.dy = Math.sin(angle)*npc1.speed;
         npc1.move();
         npc1.hitbox = new Rectangle((int)npc1.xpos,(int)npc1.ypos,npc1.width,npc1.height);//updates npc1 hitbox after moving
-        distance = Math.sqrt(xdistance * xdistance+ydistance*ydistance);//uses pythag. thry. to find the distance between player and npc1, and uses that to update the npc1's photo if its close
+        distance = Math.sqrt(npcDistanceX * npcDistanceX + npcDistanceY * npcDistanceY);//uses pythag. thry. to find the distance between player and npc1, and uses that to update the npc1's photo if its close
         //System.out.println(distance);
     }
 
@@ -357,7 +390,7 @@ public class BasicGameApp implements Runnable {
         //else {speed=3;}
     }
 
-    public void playerTackled(){
+   /* public void playerTackled(){
         if (player.isTackled&& tackleFrameCount <60){
             player.dx=0;
             player.dy=0;
@@ -371,69 +404,150 @@ public class BasicGameApp implements Runnable {
             player.iFrames = true;
    //         System.out.println(frameCount);
         }
-    }
+    }*/
 
 
 
     public void collisionCheck() {
 
-        if (!ball.playerPossession&&player.hitbox.intersects(ball.hitbox)) {
-            player.iFrames = true;
-            //add the npc getting tackled
-        }
-        if (player.hitbox.intersects(npc1.hitbox) && !player.iFrames) {
-            player.isTackled = true; //kills the player if it hits the npc1
-        }
-        if (ball.hitbox.intersects(rightGoal.hitbox)) {
-            scorePlayer += 1; //gives the player a point if its alive and touches the right goal
-            scoreboard.text = "score:" + scorePlayer + " : " + scoreOpponent; //updates the text on teh scoreboard
-            player.xpos = 200; //sets the player back to starting position
-            ball.xpos = 485;
-            ball.ypos = 345;
-            ball.gamestart = true;
-            ball.playerPossession = false;
-            player.isTackled = false;
-            ball.dx = 0;
-            ball.dy = 0;
-            player.xpos = 50;
-            player.ypos = 345;
-            npc1.xpos = 950;
-            npc1.ypos = 345;
-            return;
-        }
-        if (player.hitbox.intersects(ball.hitbox)&&!npc1.iFrames) {
-            ball.playerPossession = true;
-            ball.gamestart = false;
-        }
-        if (ball.hitbox.intersects(leftGoal.hitbox)) {
-            scoreOpponent += 1; //gives the player a point if its alive and touches the right goal
-            scoreboard.text = "score:" + scorePlayer + " : " + scoreOpponent; //updates the text on teh scoreboard
-            player.xpos = 200; //sets the player back to starting position
-            ball.xpos = 485;
-            ball.ypos = 345;
-            ball.gamestart = true;
-            ball.playerPossession = false;
-            player.isTackled = false;
-            ball.dx = 0;
-            ball.dy = 0;
-            player.xpos = 50;
-            player.ypos = 345;
-            npc1.xpos = 950;
-            npc1.ypos = 345;
-            return;
+        for (Enemy enemy: enemies) {
+            if (!ball.playerPossession && player.hitbox.intersects(ball.hitbox)&&!player.iFrameCooldown) {
+                player.iFrames = true;
+                kickPower=0;
+                //add the npc getting tackled\
 
-        }
-
-
-            if (npc1.hitbox.intersects(ball.hitbox) && !player.iFrames) {
-                ball.playerPossession = false;
-                npc1.iFrames=true;
-                ball.gamestart = false;
             }
+
+            if (player.hitbox.intersects(enemy.hitbox) && !player.iFrames) {
+                player.isTackled = true; //kills the player if it hits the npc1
+            }
+            if (ball.hitbox.intersects(rightGoal.hitbox)) {
+                scorePlayer += 1; //gives the player a point if its alive and touches the right goal
+                scoreboard.text = "score:" + scorePlayer + " : " + scoreOpponent; //updates the text on teh scoreboard
+                player.xpos = 200; //sets the player back to starting position
+                ball.xpos = 485;
+                ball.ypos = 345;
+                ball.gamestart = true;
+                ball.playerPossession = false;
+                ball.npcPossession = false;
+                player.isTackled = false;
+                ball.kicked = false;
+                ball.reset();
+                ball.dx = 0;
+                ball.dy = 0;
+                player.xpos = 50;
+                player.ypos = 345;
+                npc1.xpos = 950;
+                npc1.ypos = 345;
+                return;
+            }
+            if (player.hitbox.intersects(ball.hitbox) && !enemy.iFrames && !player.isTackled) {
+                ball.playerPossession = true;
+                ball.kicked = false;
+                ball.gamestart = false;
+                ball.reset();
+            }
+            if (ball.hitbox.intersects(leftGoal.hitbox)) {
+                scoreOpponent += 1; //gives the player a point if its alive and touches the right goal
+                scoreboard.text = "score:" + scorePlayer + " : " + scoreOpponent; //updates the text on teh scoreboard
+                ball.xpos = 485;
+                ball.ypos = 345;
+                ball.gamestart = true;
+                ball.playerPossession = false;
+                ball.npcPossession = false;
+                player.isTackled = false;
+                ball.kicked = false;
+                ball.dx = 0;
+                ball.dy = 0;
+                player.xpos = 50;
+                player.ypos = 345;
+                npc1.xpos = 950;
+                npc1.ypos = 345;
+                return;
+
+            }
+
+            if (enemy.hitbox.intersects(ball.hitbox) && !player.iFrames && !enemy.iFrameCooldown) {
+                ball.playerPossession = false;
+                ball.npcPossession = true;
+                ball.reset();
+                npc1.iFrames = true;
+                ball.gamestart = false;
+                kickPower=0;
+            }
+            else if (enemy.hitbox.intersects(ball.hitbox) && player.iFrameCooldown && !enemy.iFrameCooldown){
+
+            }
+
+        }
+        System.out.println(ball.dx+" "+ball.dy+" ");
+    }
+
+
+    public void ballKick(){ //IDEA: give diff players diff kick powers, and then add that would prob need a similar thing with the for(enemy enemes: enemies) things but well see
+        ball.playerPossession = false;
+        player.iframeSet(ball,200);
+        player.iFrames=true;
+      //  ball.gamestart = true;
+        double kickDistanceX= mouseX - ball.xpos;
+        double kickDistanceY= mouseY - ball.ypos;
+        double ballAngle = Math.atan2(kickDistanceY, kickDistanceX); //finds the angle of where the the player is to the npc1
+        ball.kickedDX = Math.cos(ballAngle); //these 2 lines always move the npc1 through the hypotenuse of said triangle i.e the shortest path
+        ball.kickedDY = Math.sin(ballAngle);
+        System.out.println(ball.dx+" "+ ball.dy);
+
+
+        //if its held for a while, increases a value that multiplies the velocity, linked to framerate
+    }
+
+    public void kick(){
+        if(mouseHeld&&!ball.kicked){
+            ball.kickPower+=.02;
+        }
+        else{
+            ball.kickPower-=.02;
+            if (ball.kickPower<=1){
+                ball.kickPower=1;
+                ball.kicked = false;
+            }
+        }
+System.out.println(ball.kickPower);
+    }
+
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
 
     }
 
-    public void iframeSetPlayer(){
+    @Override
+    public void mousePressed(MouseEvent e) {
+        mouseX = e.getX();
+        mouseY = e.getY();
+        mouseHeld = true;
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        mouseHeld = false;
+        if (!ball.kicked&&ball.playerPossession) {
+            ballKick();
+            ball.kicked = true; //when the ball is kicked only them use kickpwoer
+        }
+
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
+    }
+
+    /*public void iframeSetPlayer(){
         if (player.iFrames){
             iFrameCount++;
         }
@@ -444,14 +558,24 @@ public class BasicGameApp implements Runnable {
       //  System.out.println(ball.playerPossession);
     }
     public void iframeSetNPC() {
-        if (npc1.iFrames) {
+        if (npc1.iFrames&&!npc1.iFrameCooldown) {
             npc1.iFrameCount++;
         }
         if (npc1.iFrames && npc1.iFrameCount > 40) {
-            npc1.iFrames = false;
+            npc1.iFrameCooldown=true;
             npc1.iFrameCount = 0;
+            npc1.iFrames = false;
+            return;
         }
-    }
+        if (npc1.iFrameCooldown==true){
+            if(!npc1.hitbox.intersects(ball.hitbox)){
+                npc1.iFrameCooldown=false;
+            }
+        }
+        if(!npc1.hitbox.intersects(ball.hitbox)){
+            npc1.iFrameCooldown=false;
+        }
+    }*/
 
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

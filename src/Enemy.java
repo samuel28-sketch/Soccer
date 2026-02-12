@@ -18,6 +18,8 @@ public class Enemy {
     int maxspeed;
     double speed;
     int iFrameCount;
+    int iFrameCooldownCount;
+    boolean iFrameCooldown;
     BasicGameApp game;
 
     public Enemy(int maxspeed, double speed, int widthInput, int heightInput, int xposInput, int yposInput){//constructor for the enemy
@@ -35,6 +37,22 @@ public class Enemy {
     public void move(){
         xpos += dx;
         ypos += dy;
+    }
+    public void iframeSetNPC(Ball ball) {
+        if (iFrames&&!iFrameCooldown) {
+            iFrameCount++;
+        }
+        if (iFrames && iFrameCount > 40) {
+            iFrameCooldown=true;
+            iFrameCount = 0;
+            iFrames = false;
+            return;
+        }
+        if (iFrameCooldown==true){
+            if(!hitbox.intersects(ball.hitbox)){
+                iFrameCooldown=false;
+            }
+        }
     }
 
 
