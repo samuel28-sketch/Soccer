@@ -18,6 +18,9 @@ public class Ball {
     boolean kicked;
     double kickedDX;
     double kickedDY;
+    boolean iFrames;
+    int iFrameCount;
+    boolean iFrameCooldown;
 
     //need a like direction variable either booleans or a char maybe
     //maybe need a like possestion boolean, if player has ball or smth
@@ -73,6 +76,24 @@ public class Ball {
         dy=0;
         kickedDY=0;
         kickedDX=0;
+        kickPower=1;
+    }
+
+    public void iframeSet(Ball ball, int time){
+        if (iFrames&&!iFrameCooldown) {
+            iFrameCount++;
+        }
+        if (iFrames && iFrameCount > time) {
+            iFrameCooldown=true;
+            iFrameCount = 0;
+            iFrames = false;
+            return;
+        }
+        if (iFrameCooldown==true){
+            if(!hitbox.intersects(ball.hitbox)){
+                iFrameCooldown=false;
+            }
+        }
     }
 
 }

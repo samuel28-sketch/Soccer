@@ -110,7 +110,7 @@ public class BasicGameApp implements Runnable, MouseListener {
             ball.dx = player.dx;
             ball.dy = player.dy;
         }
-        if (ball.playerPossession||ball.gamestart) {
+        if (ball.playerPossession||ball.gamestart||!ball.npcPossession) {
                 npcDefensivePath(); //makes the enemy chase the player only while its alive
              //   npcSprint();
                // System.out.println("defensive path");
@@ -231,6 +231,7 @@ public class BasicGameApp implements Runnable, MouseListener {
             moveThings();  //move all the game objects
             npc1.iframeSetNPC(ball);
             player.iframeSet(ball, 40);
+            ball.iframeSet(ball,60);//FIX THIS LOWK
             collisionCheck(); //checks collisions for all the hitboxes
             render();  // paint the graphics
             kick();
@@ -434,17 +435,16 @@ public class BasicGameApp implements Runnable, MouseListener {
                 player.isTackled = false;
                 ball.kicked = false;
                 ball.reset();
-                ball.dx = 0;
-                ball.dy = 0;
                 player.xpos = 50;
                 player.ypos = 345;
                 npc1.xpos = 950;
                 npc1.ypos = 345;
                 return;
             }
-            if (player.hitbox.intersects(ball.hitbox) && !enemy.iFrames && !player.isTackled) {
+            if (player.hitbox.intersects(ball.hitbox) && !enemy.iFrames && !player.isTackled&&!ball.iFrames) {
                 ball.playerPossession = true;
                 ball.kicked = false;
+                ball.kickPower=1;
                 ball.gamestart = false;
                 ball.reset();
             }
@@ -460,6 +460,7 @@ public class BasicGameApp implements Runnable, MouseListener {
                 ball.kicked = false;
                 ball.dx = 0;
                 ball.dy = 0;
+                ball.kickPower=0;
                 player.xpos = 50;
                 player.ypos = 345;
                 npc1.xpos = 950;
@@ -487,8 +488,7 @@ public class BasicGameApp implements Runnable, MouseListener {
 
     public void ballKick(){ //IDEA: give diff players diff kick powers, and then add that would prob need a similar thing with the for(enemy enemes: enemies) things but well see
         ball.playerPossession = false;
-        //player.iframeSet(ball,100); //currently doesnt work aka it doesnt do anything
-        player.iFrames=true;
+        ball.iFrames=true;
       //  ball.gamestart = true;
         double kickDistanceX= mouseX - ball.xpos;
         double kickDistanceY= mouseY - ball.ypos;
@@ -504,12 +504,17 @@ public class BasicGameApp implements Runnable, MouseListener {
     public void kick(){
         if(mouseHeld&&!ball.kicked){
             ball.kickPower+=.02;
+            if (ball.kickPower>3){
+                player.dy=0;
+                player.dx=0;
+            }
         }
         else{
             ball.kickPower-=.02;
             if (ball.kickPower<=1){
                 ball.kickPower=1;
                 ball.kicked = false;
+                ball.iFrames=false;
             }
         }
 System.out.println(ball.kickPower);
